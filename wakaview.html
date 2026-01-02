@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8" />
+  <title>WakaTime Dashboard</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/water.css@2/out/dark.min.css">
+
+</head>
+
+<body>
+  <h1>WakaTime Activity</h1>
+
+  <div class="controls">
+    <input type="password" id="apiKeyInput" placeholder="WakaTime API Key" style="width: 260px" />
+
+    <select id="rangeSelect">
+      <option value="today">Today</option>
+      <option value="7">Last 7 days</option>
+      <option value="30">Last 30 days</option>
+    </select>
+
+    <button id="loadBtn">Load</button>
+  </div>
+
+  <div id="error" class="error"></div>
+  <pre id="output">No data loaded.</pre>
+
+  <script>
+    const API_KEY_STORAGE = "wakatime_api_key";
+
+    const apiKeyInput = document.getElementById("apiKeyInput");
+    const rangeSelect = document.getElementById("rangeSelect");
+    const loadBtn = document.getElementById("loadBtn");
+    const output = document.getElementById("output");
+    const errorEl = document.getElementById("error");
+
+    const savedKey = localStorage.getItem(API_KEY_STORAGE);
+    if (savedKey) {
+      apiKeyInput.value = savedKey;
+      loadData();
+    }
+
+    loadBtn.addEventListener("click", loadData);
+
+    async function loadData() {
+      errorEl.textContent = "";
+      output.textContent = "Loading...";
+
+      const apiKey = apiKeyInput.value.trim();
+      const range = rangeSelect.value;
+
+      if (!apiKey) {
+        output.textContent = "";
+        errorEl.textContent = "API key is required.";
+        return;
+      }
+
+      localStorage.setItem(API_KEY_STORAGE, apiKey);
+
+      try {
+        const url = buildUrl(range);
+        const res = await fetch(url, {
+          headers: {
+            Authorization: "Basic " + btoa(apiKey)
+          }
+        });
+
+        if (!res.ok) {
+          throw new Error(`Request failed: ${res.status}`);
+        }
+
+        const data = await res.json();
+        output.textContent = JSON.stringify(data, null, 2);
+      } catch (err) {
+        output.textContent = "";
+        errorEl.textContent = err.message;
+      }
+    }
+
+    function buildUrl(range) {
+      if (range === "today") {
+        return "https://wakatime.com/api/v1/users/current/summaries?range=today";
+      }
+
+      const days = Number(range);
+      const end = new Date();
+      const start = new Date();
+      start.setDate(end.getDate() - (days - 1));
+
+      const fmt = d => d.toISOString().slice(0, 10);
+
+      return `https://wakatime.com/api/v1/users/current/summaries?start=${fmt(start)}&end=${fmt(end)}`;
+    }
+  </script>
+</body>
+
+</html>

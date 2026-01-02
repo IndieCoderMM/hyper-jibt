@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8" />
+  <title>Diffview</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/water.css@2/out/dark.min.css">
+  <script src="https://cdn.jsdelivr.net/npm/diff@5/dist/diff.min.js"></script>
+
+  <style>
+    .container {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 1rem;
+    }
+
+    textarea {
+      width: 100%;
+      height: 200px;
+      font-family: monospace;
+    }
+
+    #output {
+      white-space: pre-wrap;
+      font-family: monospace;
+      margin-top: 1rem;
+    }
+
+    .added {
+      background-color: #a8fa55;
+      color: #333;
+    }
+
+    .removed {
+      background-color: #f95c5c;
+      color: #333;
+      text-decoration: line-through;
+    }
+  </style>
+</head>
+
+<body>
+  <h1>diffview</h1>
+
+  <div class="container">
+    <div>
+      <h3>Text A</h3>
+      <textarea id="textA" placeholder="Enter first text"></textarea>
+    </div>
+
+    <div>
+      <h3>Text B</h3>
+      <textarea id="textB" placeholder="Enter second text"></textarea>
+    </div>
+  </div>
+
+  <button id="diffBtn">Diff</button>
+
+  <div id="output"></div>
+
+  <script>
+    const btn = document.getElementById('diffBtn');
+    const out = document.getElementById('output');
+
+    btn.addEventListener('click', () => {
+      const a = document.getElementById('textA').value;
+      const b = document.getElementById('textB').value;
+
+      const diff = Diff.diffChars(a, b);
+      out.innerHTML = '';
+
+      diff.forEach(part => {
+        const span = document.createElement('span');
+        span.textContent = part.value;
+
+        if (part.added) span.className = 'added';
+        if (part.removed) span.className = 'removed';
+
+        out.appendChild(span);
+      });
+    });
+  </script>
+</body>
+
+</html>
