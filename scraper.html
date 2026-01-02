@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Web Scraper UI</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <style>
+    body {
+      font-family: system-ui, sans-serif;
+      background: #f7f7f7;
+      padding: 24px;
+      max-width: 900px;
+      margin: 0 auto;
+    }
+
+    h1 {
+      font-size: 1.25rem;
+      margin-bottom: 16px;
+    }
+
+    .controls {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+      margin-bottom: 16px;
+      align-items: center;
+    }
+
+    input[type=text] {
+      flex: 1;
+      padding: 10px 12px;
+      font-size: 14px;
+    }
+
+    button {
+      padding: 10px 14px;
+      font-size: 14px;
+      cursor: pointer;
+    }
+
+    textarea {
+      width: 100%;
+      height: 420px;
+      padding: 12px;
+      font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+      font-size: 13px;
+      line-height: 1.4;
+      resize: vertical;
+    }
+
+    .note {
+      font-size: 12px;
+      color: #555;
+      margin-top: 8px;
+    }
+
+    .checkbox-label {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      font-size: 14px;
+    }
+  </style>
+</head>
+<body>
+  <h1>Web Scraper</h1>
+
+  <div class="controls">
+    <input id="url" type="text" placeholder="https://example.com" />
+    <button onclick="scrape()">Scrape</button>
+    <button onclick="copyJSON()">Copy JSON</button>
+  </div>
+  <label class="checkbox-label">
+    <input type="checkbox" id="useServer" checked /> Use Server
+  </label>
+
+  <div class="note">
+    <p id="browser-note">[Browser Mode]: Uses a public CORS proxy. This is limited by browser security.</p>
+    <p id="server-note">[Server Mode]: Uses local server at <code>http://localhost:8080</code>. Run the server code from <code>/server/scraper/main.go</code></p>
+  </div>
+
+  <textarea id="output" spellcheck="false"></textarea>
+
+  <script>
+    async function scrape() {
+      const url = document.getElementById('url').value.trim();
+      const output = document.getElementById('output');
+      const useServer = document.getElementById('useServer').checked;
+
+      if (!url) {
+        output.value = 'Please enter a URL.';
+        return;
+      }
+
+      output.value = 'Loading...';
+
+      try {
+        if (useServer) {
+          const endpoint = `http://localhost:8080/scrape?url=${encodeURIComponent(url)}`;
+          const res = await fetch(endpoint);
+          if (!res.ok) throw new Error(`Server error: ${res.status}`);
+          const data = await res.json();
+          output.value = JSON.stringify(data, null, 2);
+        } else {
+          const items = await scrapeWithBrowser(url);
+          output.value = JSON.stringify(items, null, 2);
+        }
+      } catch (err) {
+        output.value = 'Error: ' + err.message;
+      }
+    }
+
+    async function scrapeWithBrowser(url) {
+      const res = await fetch(`https://api.allorigins.win/raw?url=${encodeURIComponent(url)}`);
+      const html = await res.text();
+      const doc = new DOMParser().parseFromString(html, 'text/html');
+      const base = new URL(url);
+      const items = [];
+
+      Array.from(doc.querySelectorAll('a[href]')).forEach(a => {
+        const href = new URL(a.getAttribute('href'), base).href;
+        items.push({ label: a.textContent.trim() || 'None', href, type: 'a' });
+      });
+
+      Array.from(doc.querySelectorAll('img[src]')).forEach(img => {
+        const href = new URL(img.getAttribute('src'), base).href;
+        items.push({ label: img.alt || 'None', href, type: 'img' });
+      });
+
+      return items;
+    }
+
+    function copyJSON() {
+      const textarea = document.getElementById('output');
+      textarea.select();
+      navigator.clipboard.writeText(textarea.value).then(() => {
+        alert('Copied to clipboard');
+      }).catch(err => {
+        alert('Copy failed: ' + err);
+      });
+    }
+
+    const serverCheckbox = document.getElementById('useServer');
+    const browserNote = document.getElementById('browser-note');
+    const serverNote = document.getElementById('server-note');
+
+    function toggleServerMode() {
+      browserNote.style.display = serverCheckbox.checked ? 'none' : 'block';
+      serverNote.style.display = serverCheckbox.checked ? 'block' : 'none';
+    }
+
+    serverCheckbox.onchange = toggleServerMode;
+    toggleServerMode();
+  </script>
+</body>
+</html>
+
