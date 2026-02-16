@@ -1,0 +1,242 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Image Hash Generator</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <style>
+    body {
+      font-family: system-ui, sans-serif;
+      background: #f7f7f7;
+      padding: 24px;
+      max-width: 900px;
+      margin: 0 auto;
+    }
+
+    h1 {
+      font-size: 1.25rem;
+      margin-bottom: 16px;
+    }
+
+    .controls {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+      margin-bottom: 16px;
+      align-items: center;
+    }
+
+    input[type=text] {
+      flex: 1;
+      padding: 10px 12px;
+      font-size: 14px;
+    }
+
+    button {
+      padding: 10px 14px;
+      font-size: 14px;
+      cursor: pointer;
+    }
+
+    .toolbar {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 0px 12px;
+      margin-bottom: 8px;
+    }
+
+    .toolbar label {
+      font-size: 14px;
+      white-space: nowrap;
+    }
+
+    .toolbar input[type=range] {
+      flex: 1;
+    }
+
+    .toolbar span {
+      font-size: 14px;
+      min-width: 30px;
+    }
+
+    .results-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 16px;
+      margin-top: 20px;
+    }
+
+    .result-card {
+      background: #fff;
+      border-radius: 6px;
+      padding: 16px;
+    }
+
+    .result-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 12px;
+    }
+
+    .result-title {
+      font-size: 14px;
+      font-weight: 600;
+    }
+
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      padding: 4px 8px;
+      border-radius: 999px;
+      font-size: 12px;
+      font-weight: 500;
+    }
+
+    .badge.match {
+      background: #d4edda;
+      color: #155724;
+    }
+
+    .badge.different {
+      background: #f8d7da;
+      color: #721c24;
+    }
+
+    .hash-row {
+      margin-bottom: 12px;
+    }
+
+    .hash-row label {
+      display: block;
+      font-size: 12px;
+      color: #666;
+      margin-bottom: 4px;
+    }
+
+    textarea {
+      width: 100%;
+      height: 48px;
+      padding: 8px;
+      font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+      font-size: 12px;
+      line-height: 1.4;
+      resize: none;
+      box-sizing: border-box;
+      background: #f9f9f9;
+    }
+
+    .similarity-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding-top: 12px;
+      border-top: 1px solid #eee;
+      margin-top: 8px;
+    }
+
+    .timing-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding-top: 8px;
+    }
+
+    .timing-label {
+      font-size: 12px;
+      color: #666;
+    }
+
+    .timing-value {
+      font-size: 12px;
+      font-family: ui-monospace, monospace;
+    }
+
+    .similarity-label {
+      font-size: 14px;
+      font-weight: 500;
+    }
+
+    .similarity-value {
+      font-size: 18px;
+      font-weight: 600;
+    }
+  </style>
+  <script src="https://unpkg.com/imagehash-web/dist/imagehash-web.min.js"></script>
+  <script src="https://unpkg.com/uuid@8.3.1/dist/umd/uuid.min.js"></script>
+
+</head>
+<body>
+  <h1>Image Hash Generator</h1>
+
+  <div class="controls">
+    <input id="url1" type="text" placeholder="Image 1 URL" />
+    <input id="url2" type="text" placeholder="Image 2 URL" />
+    <button onclick="run()">Compare</button>
+  </div>
+
+  <div class="toolbar">
+    <label>pHash Accuracy (bits):</label>
+    <input type="range" id="pHashBits" min="4" max="32" value="8" />
+    <span id="pHashBitsValue">8</span>
+  </div>
+
+  <div class="toolbar">
+    <label>UUID Accuracy (bytes):</label>
+    <input type="range" id="uuidBytes" min="6" max="16" value="12" />
+    <span id="uuidBytesValue">12</span>
+  </div>
+
+  <div class="results-grid">
+    <div class="result-card" id="phashCard">
+      <div class="result-header">
+        <span class="result-title">pHash</span>
+        <div id="phashBadge" class="badge" style="display: none;"></div>
+      </div>
+      <div class="hash-row">
+        <label>Hash 1</label>
+        <textarea id="phash-out1" spellcheck="false" readonly></textarea>
+      </div>
+      <div class="hash-row">
+        <label>Hash 2</label>
+        <textarea id="phash-out2" spellcheck="false" readonly></textarea>
+      </div>
+      <div class="similarity-row">
+        <span class="similarity-label">Similarity</span>
+        <span id="phashSimilarity" class="similarity-value">-</span>
+      </div>
+      <div class="timing-row">
+        <span class="timing-label">Time</span>
+        <span id="phashTime" class="timing-value">-</span>
+      </div>
+    </div>
+
+    <div class="result-card" id="uuidCard">
+      <div class="result-header">
+        <span class="result-title">UUID Hash</span>
+        <div id="uuidBadge" class="badge" style="display: none;"></div>
+      </div>
+      <div class="hash-row">
+        <label>Hash 1</label>
+        <textarea id="uuid-out1" spellcheck="false" readonly></textarea>
+      </div>
+      <div class="hash-row">
+        <label>Hash 2</label>
+        <textarea id="uuid-out2" spellcheck="false" readonly></textarea>
+      </div>
+      <div class="similarity-row">
+        <span class="similarity-label">Similarity</span>
+        <span id="uuidSimilarity" class="similarity-value">-</span>
+      </div>
+      <div class="timing-row">
+        <span class="timing-label">Time</span>
+        <span id="uuidTime" class="timing-value">-</span>
+      </div>
+    </div>
+  </div>
+
+  <script src="scripts/imghash.js"></script>
+</body>
+</html>
