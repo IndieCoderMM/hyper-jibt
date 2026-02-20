@@ -1,0 +1,282 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<title>UUID Image URL Hash Test</title>
+<style>
+  body {
+    font-family: system-ui, sans-serif;
+    background: #f7f7f7;
+    padding: 24px;
+    max-width: 900px;
+    margin: 0 auto;
+  }
+
+  h1 {
+    font-size: 1.25rem;
+    margin-bottom: 16px;
+  }
+
+  h3 {
+    font-size: 14px;
+    font-weight: 600;
+    margin: 20px 0 8px;
+  }
+
+  .controls {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+    margin-bottom: 16px;
+    align-items: center;
+  }
+
+  input[type=text], input[type=number] {
+    padding: 10px 12px;
+    font-size: 14px;
+  }
+
+  input[type=text] { flex: 1; }
+  input[type="number"] { width: 80px; }
+
+  button {
+    padding: 10px 14px;
+    font-size: 14px;
+    cursor: pointer;
+  }
+
+  .toolbar {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 0px 12px;
+    margin-bottom: 8px;
+  }
+
+  .toolbar label {
+    font-size: 14px;
+    white-space: nowrap;
+  }
+
+  .row {
+    display: flex;
+    gap: 12px;
+    align-items: center;
+    margin-bottom: 12px;
+  }
+
+  .row label {
+    font-size: 14px;
+    white-space: nowrap;
+    min-width: 120px;
+  }
+
+  textarea {
+    width: 100%;
+    height: 100px;
+    padding: 10px 12px;
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+    font-size: 13px;
+    line-height: 1.5;
+    resize: none;
+    box-sizing: border-box;
+    background: #fff;
+    border: 1px solid #ddd;
+    border-radius: 6px;
+  }
+
+  .output {
+    background: #fff;
+    border-radius: 6px;
+    padding: 16px;
+    white-space: pre-wrap;
+    word-break: break-all;
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+    font-size: 13px;
+    line-height: 1.6;
+    border: 1px solid #ddd;
+    max-height: 100px;
+    overflow: auto;
+  }
+
+  #timeOut {
+    max-height: none;
+  }
+
+  .url-length {
+    font-size: 12px;
+    color: #666;
+    margin-top: 4px;
+    text-align: right;
+  }
+</style>
+  <script src="https://unpkg.com/uuid@8.3.1/dist/umd/uuid.min.js"></script>
+</head>
+<body>
+
+<h1>UUID Image URL Hash Benchmark</h1>
+
+<div class="controls">
+  <textarea id="urlInput" placeholder="Paste image URL here"></textarea>
+</div>
+<div class="url-length">URL Length: <span id="urlLength">0</span></div>
+
+<div class="controls">
+<div class="toolbar">
+  <label>Trimmed Bytes:</label>
+  <input type="number" id="keepBytes" min="6" max="16" value="12" />
+</div>
+
+<div class="toolbar">
+  <label>Max URL Length:</label>
+  <input type="number" id="maxLen" min="0" value="0" />
+  <span style="font-size: 12px; color: #666;">(0 = unlimited)</span>
+</div>
+</div>
+
+
+<div class="controls">
+  <button id="generateBtn">Generate</button>
+
+<div class="toolbar">
+  <label>
+    <input type="checkbox" id="benchmarkChk" />
+    Run 100 times
+  </label>
+</div>
+</div>
+
+<h3>Normalized URL</h3>
+<div class="output" id="normalizedOut"></div>
+
+<h3>Generated Hash</h3>
+<div class="output" id="hashOut"></div>
+
+<h3>Result</h3>
+<div class="output" id="timeOut"></div>
+
+<script type="module">
+const { v5: uuidv5, parse: uuidParse } = uuid;
+
+const urlInput = document.getElementById("urlInput");
+const urlLength = document.getElementById("urlLength");
+const generateBtn = document.getElementById("generateBtn");
+const benchmarkChk = document.getElementById("benchmarkChk");
+
+urlInput.addEventListener("input", () => {
+  urlLength.textContent = urlInput.value.length;
+});
+
+function normalize(input, maxLen){
+  input = input.trim()
+  const u = new URL(input)
+
+  if (u.protocol === 'data:') {
+    return input.slice(-maxLen)
+  }
+
+  const host = u.hostname.toLowerCase().replace(/^www\./, '')
+  const search = u.search
+  const paths = u.pathname.split('/')
+  let pathname = ''
+  let pathLen = maxLen - host.length - search.length
+  // Collect path segments start from the last one
+  // until we hit the max length
+  for (let i = paths.length - 1; i >= 0; i--) {
+    const path = paths[i]
+    pathname = `/${path}${pathname}`
+    pathLen -= path.length + 1
+    if (pathLen <= 0) {
+      break
+    }
+  }
+
+  return `${host}${pathname.slice(1)}${search}`
+}
+
+function base64UrlEncode(bytes){
+  let binary = ''
+  for (let i = 0; i < bytes.length; i++) {
+    binary += String.fromCharCode(bytes[i])
+  }
+
+  return btoa(binary).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '')
+}
+
+function imageUrlToId(url, keepBytes, maxLen) {
+  const normalized = normalize(url, maxLen > 0 ? maxLen : undefined);
+  const uuid = uuidv5(normalized, uuidv5.URL);
+  const bytes = uuidParse(uuid);
+  return {
+    normalized,
+    hash: base64UrlEncode(bytes.slice(0, keepBytes))
+  };
+}
+
+generateBtn.addEventListener("click", async () => {
+  const url = urlInput.value;
+  const keepBytes = parseInt(document.getElementById("keepBytes").value, 10);
+  const maxLen = parseInt(document.getElementById("maxLen").value, 10);
+  const doBenchmark = benchmarkChk.checked;
+
+  generateBtn.disabled = true;
+  generateBtn.textContent = "Generating...";
+await new Promise(r => setTimeout(r, 0));
+
+  try {
+    if (!doBenchmark) {
+      const start = performance.now();
+      const { normalized, hash } = imageUrlToId(url, keepBytes, maxLen);
+      const end = performance.now();
+
+      document.getElementById("normalizedOut").textContent = normalized;
+      document.getElementById("hashOut").textContent = hash;
+      document.getElementById("timeOut").textContent =
+`Single Run
+────────────────────────────────
+Time: ${(end - start).toFixed(4)} ms`;
+    } else {
+      const times = [];
+      let normalized = "";
+      let hash = "";
+
+      for (let i = 0; i < 100; i++) {
+        const start = performance.now();
+        const result = imageUrlToId(url, keepBytes, maxLen);
+        const end = performance.now();
+        times.push(end - start);
+        normalized = result.normalized;
+        hash = result.hash;
+      }
+
+      const total = times.reduce((a, b) => a + b, 0);
+      const avg = total / times.length;
+      const min = Math.min(...times);
+      const max = Math.max(...times);
+
+      document.getElementById("normalizedOut").textContent = normalized;
+      document.getElementById("hashOut").textContent = hash;
+      document.getElementById("timeOut").textContent =
+`Benchmark Report (Iter: 100)
+────────────────────────────────
+TIMING
+  Total:  ${total.toFixed(4)} ms
+  Average: ${avg.toFixed(4)} ms
+  Min:    ${min.toFixed(4)} ms
+  Max:    ${max.toFixed(4)} ms
+────────────────────────────────`;
+    }
+  } catch (err) {
+    document.getElementById("normalizedOut").textContent = "ERROR: Invalid URL";
+    document.getElementById("hashOut").textContent = "";
+    document.getElementById("timeOut").textContent = "";
+  } finally {
+    generateBtn.disabled = false;
+    generateBtn.textContent = "Generate";
+  }
+});
+</script>
+
+</body>
+</html>
+
