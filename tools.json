@@ -1,0 +1,68 @@
+{
+  "tools": [
+    {
+      "file": "budjet.html",
+      "name": "Budjet",
+      "icon": "💸",
+      "description": "Track wallet balances, transactions, and transfers across currencies.",
+      "category": "Finance",
+      "keywords": ["budget", "money", "expenses", "income"]
+    },
+    {
+      "file": "charview.html",
+      "name": "Invisible Character Inspector",
+      "icon": "🔍",
+      "description": "Reveal whitespace, control characters, and Unicode code points in text.",
+      "category": "Text",
+      "keywords": ["unicode", "characters", "whitespace"]
+    },
+    {
+      "file": "diffview.html",
+      "name": "Diff Viewer",
+      "icon": "🔀",
+      "description": "Compare two text blocks and review their differences.",
+      "category": "Text",
+      "keywords": ["compare", "diff"]
+    },
+    {
+      "file": "imghash.html",
+      "name": "Image Hash Generator",
+      "icon": "🖼️",
+      "description": "Generate a perceptual hash from an image.",
+      "category": "Images",
+      "keywords": ["image", "hash", "perceptual"]
+    },
+    {
+      "file": "jstring.html",
+      "name": "JSON Escaper",
+      "icon": "🧩",
+      "description": "Escape JSON strings for embedding or restore them to readable text.",
+      "category": "Developer",
+      "keywords": ["json", "escape", "string"]
+    },
+    {
+      "file": "scraper.html",
+      "name": "Web Scraper",
+      "icon": "🕸️",
+      "description": "Inspect text and metadata from a web page.",
+      "category": "Developer",
+      "keywords": ["web", "scrape", "metadata"]
+    },
+    {
+      "file": "urlhash.html",
+      "name": "UUID Image URL Hash Benchmark",
+      "icon": "🔗",
+      "description": "Explore normalized image URLs and their generated hashes.",
+      "category": "Developer",
+      "keywords": ["uuid", "url", "image", "hash", "benchmark"]
+    },
+    {
+      "file": "wakaview.html",
+      "name": "WakaTime Activity",
+      "icon": "⏱️",
+      "description": "View your WakaTime coding activity dashboard.",
+      "category": "Productivity",
+      "keywords": ["coding", "time", "dashboard"]
+    }
+  ]
+}
